@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Environment Variables
+.env
+*.env
+!.env.example
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Cache
+fuel_cache.json
+*.cache
+.refact/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backup files
+*.backup
+*.bak
+*.tmp
+
+# Build files
+*.spec
+*.exe
+*.app
+
+# Documentation builds
+docs/_build/
+
+# Test files
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Personal notes
+notes.txt
+TODO.txt
