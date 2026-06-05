@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { PRICE_CACHE, CITY, COUNTRY, LATITUDE, LONGITUDE, TIMEZONE, TAVILY_API_KEY } = require('./config');
+const { PRICE_CACHE, CITY, COUNTRY, LATITUDE, LONGITUDE, TIMEZONE, TAVILY_API_KEY, WEATHER_API_KEY } = require('./config');
 
 // Fetch wrapper with timeout — uses global fetch (Node 18+), no dynamic import needed
 async function fetchWithTimeout(url, timeoutMs = 12000, options = {}) {
@@ -28,13 +28,27 @@ function getPrayerTimes() {
 
 const WMO_DESCS = { 0: 'Saaf aasman', 1: 'Mostly saaf', 2: 'Partly cloudy', 3: 'Overcast', 45: 'Fog', 51: 'Halki baarish', 53: 'Baarish', 61: 'Halki baarish', 63: 'Baarish', 71: 'Halki barf', 73: 'Barf', 80: 'Shower', 95: 'Toofan' };
 
-// Try Open-Meteo first, fallback to wttr.in, then return estimated data
+// WeatherAPI.com (primary if key is set), then Open-Meteo, wttr.in, finally estimated
 async function getWeather() {
+  if (WEATHER_API_KEY) {
+    const data = await fetchWeatherApi();
+    if (data) return data;
+  }
   let data = await fetchOpenMeteo();
   if (data) return data;
   data = await fetchWttr();
   if (data) return data;
   return estimateWeather();
+}
+
+async function fetchWeatherApi() {
+  try {
+    const r = await fetchWithTimeout(`http://api.weatherapi.com/v1/current.json?key=${WEATHER_API_KEY}&q=${LATITUDE},${LONGITUDE}`, 10000);
+    if (!r.ok) return null;
+    const data = await r.json();
+    const c = data.current;
+    return { temp: c.temp_c, humidity: c.humidity, wind: c.wind_kph, desc: c.condition.text };
+  } catch { return null; }
 }
 
 async function fetchOpenMeteo() {
