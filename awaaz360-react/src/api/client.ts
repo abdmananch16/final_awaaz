@@ -1,4 +1,4 @@
-// In production (Vercel), VITE_API_URL should be set to the Railway backend URL
+// In production (Vercel), VITE_API_URL should be set to the Render backend URL
 // In dev, Vite proxies /api to localhost:3001
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 

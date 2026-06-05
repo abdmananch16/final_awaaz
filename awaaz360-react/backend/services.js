@@ -2,12 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const { PRICE_CACHE, CITY, COUNTRY, LATITUDE, LONGITUDE, TIMEZONE, TAVILY_API_KEY } = require('./config');
 
-// Fetch wrapper with AbortController timeout support
-async function fetchWithTimeout(url, timeoutMs = 8000, options = {}) {
+// Fetch wrapper with timeout — uses global fetch (Node 18+), no dynamic import needed
+async function fetchWithTimeout(url, timeoutMs = 12000, options = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const { default: fetch } = await import('node-fetch');
     const response = await fetch(url, { ...options, signal: controller.signal });
     return response;
   } finally {
@@ -18,7 +17,7 @@ async function fetchWithTimeout(url, timeoutMs = 8000, options = {}) {
 function getPrayerTimes() {
   const now = new Date();
   const url = `https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(CITY)}&country=${encodeURIComponent(COUNTRY)}&method=1&date=${now.getDate()}-${now.getMonth() + 1}-${now.getFullYear()}`;
-  return fetchWithTimeout(url, 8000)
+  return fetchWithTimeout(url, 15000)
     .then(r => r.json())
     .then(data => {
       const timings = data.data.timings;
@@ -29,7 +28,7 @@ function getPrayerTimes() {
 
 function getWeather() {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${LATITUDE}&longitude=${LONGITUDE}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=${encodeURIComponent(TIMEZONE)}`;
-  return fetchWithTimeout(url, 8000)
+  return fetchWithTimeout(url, 15000)
     .then(r => r.json())
     .then(data => {
       const c = data.current;
