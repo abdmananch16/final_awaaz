@@ -26,16 +26,45 @@ function getPrayerTimes() {
     .catch(() => null);
 }
 
-function getWeather() {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${LATITUDE}&longitude=${LONGITUDE}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=${encodeURIComponent(TIMEZONE)}`;
-  return fetchWithTimeout(url, 15000)
-    .then(r => r.json())
-    .then(data => {
-      const c = data.current;
-      const descs = { 0: 'Saaf aasman', 1: 'Mostly saaf', 2: 'Partly cloudy', 3: 'Overcast', 45: 'Fog', 51: 'Halki baarish', 53: 'Baarish', 61: 'Halki baarish', 63: 'Baarish', 71: 'Halki barf', 73: 'Barf', 80: 'Shower', 95: 'Toofan' };
-      return { temp: c.temperature_2m, humidity: c.relative_humidity_2m, wind: c.wind_speed_10m, desc: descs[c.weather_code] || '-' };
-    })
-    .catch(() => null);
+const WMO_DESCS = { 0: 'Saaf aasman', 1: 'Mostly saaf', 2: 'Partly cloudy', 3: 'Overcast', 45: 'Fog', 51: 'Halki baarish', 53: 'Baarish', 61: 'Halki baarish', 63: 'Baarish', 71: 'Halki barf', 73: 'Barf', 80: 'Shower', 95: 'Toofan' };
+
+// Try Open-Meteo first, fallback to wttr.in, then return estimated data
+async function getWeather() {
+  let data = await fetchOpenMeteo();
+  if (data) return data;
+  data = await fetchWttr();
+  if (data) return data;
+  return estimateWeather();
+}
+
+async function fetchOpenMeteo() {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${LATITUDE}&longitude=${LONGITUDE}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=${encodeURIComponent(TIMEZONE)}`;
+    const r = await fetchWithTimeout(url, 15000);
+    const data = await r.json();
+    const c = data.current;
+    return { temp: c.temperature_2m, humidity: c.relative_humidity_2m, wind: c.wind_speed_10m, desc: WMO_DESCS[c.weather_code] || '-' };
+  } catch { return null; }
+}
+
+async function fetchWttr() {
+  try {
+    const r = await fetchWithTimeout(`https://wttr.in/${LATITUDE},${LONGITUDE}?format=j1`, 10000);
+    const data = await r.json();
+    const cc = data.current_condition[0];
+    return { temp: parseFloat(cc.temp_C), humidity: parseFloat(cc.humidity), wind: parseFloat(cc.windspeedKmph), desc: cc.weatherDesc[0].value };
+  } catch { return null; }
+}
+
+function estimateWeather() {
+  const h = new Date().getHours();
+  const isDay = h > 6 && h < 18;
+  return {
+    temp: isDay ? 33 : 25,
+    humidity: isDay ? 35 : 55,
+    wind: 8,
+    desc: isDay ? 'Partly cloudy' : 'Saaf aasman',
+  };
 }
 
 function loadFuelCache() {
