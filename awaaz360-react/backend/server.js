@@ -283,17 +283,28 @@ app.get('/api/config', (req, res) => {
 // ─── Webhook routes ───
 setupWebhookRoutes(app);
 
-// ─── Serve frontend in production ───
-app.use(express.static(path.resolve(__dirname, '../dist')));
-
-// SPA fallback - serve index.html for non-API, non-webhook routes
-app.use((req, res) => {
-  if (!req.path.startsWith('/api') && !req.path.startsWith('/webhooks')) {
-    res.sendFile(path.resolve(__dirname, '../dist', 'index.html'));
-  } else {
-    res.status(404).json({ error: 'Not found' });
-  }
-});
+// ─── Serve frontend in production (only if dist/ exists) ───
+const DIST_DIR = path.resolve(__dirname, '../dist');
+if (fs.existsSync(path.join(DIST_DIR, 'index.html'))) {
+  // Full-stack mode: serve SPA for non-API routes
+  app.use(express.static(DIST_DIR));
+  app.use((req, res) => {
+    if (!req.path.startsWith('/api') && !req.path.startsWith('/webhooks')) {
+      res.sendFile(path.join(DIST_DIR, 'index.html'));
+    } else {
+      res.status(404).json({ error: 'Not found' });
+    }
+  });
+} else {
+  // API-only mode (frontend on Vercel) — inform direct browser visitors
+  app.use((req, res) => {
+    if (!req.path.startsWith('/api') && !req.path.startsWith('/webhooks')) {
+      res.json({ message: 'AWAAZ360 API is running. Frontend is deployed on Vercel.', apiUrl: '/api' });
+    } else {
+      res.status(404).json({ error: 'Not found' });
+    }
+  });
+}
 
 // ─── Start server (only when run directly, not when required as a module) ───
 if (require.main === module) {
